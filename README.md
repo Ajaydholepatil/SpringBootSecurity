@@ -1,98 +1,142 @@
-🔐 JWT Authentication Flow
+🔐 Book Application – JWT Authentication (Spring Boot)
+📌 Overview
 
-- User sends credentials to /auth/login
-- Server validates and generates JWT token
-- Client stores token
-- Client sends token in Authorization header
-- JwtFilter intercepts every request
-- Token is validated using JwtUtil
-- If valid → request proceeds
-- If invalid → request is rejected
+This project demonstrates a secure REST API built using Spring Boot with JWT (JSON Web Token) authentication.
 
-  🔐 JWT Authentication Flow (Diagram)
-✅ 1. High-Level Flow
-[ Client (Postman / React) ]
-            |
-            | 1. Login (username + password)
-            v
-[ AuthController (/auth/login) ]
-            |
-            | 2. Validate Credentials
-            v
-[ JwtUtil ]
-            |
-            | 3. Generate JWT Token
-            v
-[ Client receives Token ]
-            |
-            | 4. Send Request with Token
-            |    Authorization: Bearer <JWT>
-            v
-[ JwtFilter ]
-            |
-            | 5. Validate Token
-            v
-[ Spring Security Context ]
-            |
-            | 6. Allow Request
-            v
-[ BookController (/book/v1/getBook/{id}) ]
-            |
-            v
-[ Response Returned ]
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+It implements:
+- Stateless authentication
+- Access & Refresh Token mechanism
+-Secure API endpoints using Spring Security
 
-🔄 2. Detailed Request Flow
-STEP 1: LOGIN
+🚀 Tech Stack
+- Java 17+
+- Spring Boot
+- Spring Security
+- JPA (Hibernate)
+- JWT (io.jsonwebtoken)
+- Maven
+ -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-Client  --->  POST /auth/login
-               {
-                 "username": "admin",
-                 "password": "password"
-               }
+🔐 Authentication Flow
+🧠 High-Level Flow
+Client (Postman / React)
+        |
+        | 1. Login (username, password)
+        v
+AuthController (/auth/login)
+        |
+        | 2. Validate credentials
+        v
+JwtUtil
+        |
+        | 3. Generate Access + Refresh Token
+        v
+Client receives tokens
+        |
+        | 4. Call APIs with Access Token
+        v
+JwtFilter (validates token)
+        |
+        | 5. If valid → allow request
+        v
+Protected Controller (BookController)
+🔄 Refresh Token Flow
+1. User logs in → gets Access + Refresh token
+2. Access token expires (1 min)
+3. Client calls /auth/refresh with refresh token
+4. Server validates refresh token
+5. New access token is issued
+6. User continues without login
+🧪 API Endpoints
+🔑 Login API
 
-Server ---> Validate user
-        ---> Generate JWT
-        ---> Return token
+POST /auth/login
 
+Request Body:
+{
+  "username": "admin",
+  "password": "password"
+}
+Response:
+{
+  "accessToken": "JWT_TOKEN",
+  "refreshToken": "REFRESH_TOKEN"
+}
+🔄 Refresh Token API
 
-STEP 2: ACCESS PROTECTED API
+POST /auth/refresh?refreshToken=YOUR_REFRESH_TOKEN
 
-Client  --->  GET /book/v1/getBook/1
-               Authorization: Bearer <JWT>
+Response:
+{
+  "accessToken": "NEW_ACCESS_TOKEN"
+}
+📚 Get Book (Protected API)
 
-JwtFilter:
-   - Extract token
-   - Validate token
-   - Extract username
-   - Set Authentication in SecurityContext
+GET /book/v1/getBook/{id}
 
-If valid:
-   ---> Controller executes
+Headers:
+Authorization: Bearer <accessToken>
+🔒 Security Implementation
+✅ JWT Features
 
-If invalid:
-   ---> 401 / 403 response
-   --------------------------------------------------------------------------------------------------------------------------------------------------------------------
-   🧱 4. Component Architecture
+Stateless authentication
+
+Token-based authorization
+
+Short-lived access token (1 min)
+
+Long-lived refresh token
+
+Token validation using filter
+
+🧱 Architecture
 Controller Layer
-   |
-   |-- AuthController  ---> Login API
-   |-- BookController  ---> Protected APIs
-   |
+ ├── AuthController
+ ├── BookController
+
 Service Layer
-   |
-   |-- BookService
-   |
+ ├── BookService
+
 Repository Layer
-   |
-   |-- BookRepository (JPA)
-   |
+ ├── BookRepository
+
 Security Layer
-   |
-   |-- SecurityConfig
-   |-- JwtFilter
-   |-- JwtUtil
-   |
+ ├── SecurityConfig
+ ├── JwtFilter
+ ├── JwtUtil
+
 DTO Layer
-   |
-   |-- LoginRequest
+ ├── LoginRequest
+⚙️ Configuration
+
+application.properties
+jwt.secret=mysecretkeymysecretkeymysecretkey123
+jwt.access.expiration=60000
+jwt.refresh.expiration=604800000
+
+🧪 Testing (Postman)
+1️⃣ Login
+
+POST /auth/login
+
+Get access + refresh token
+
+2️⃣ Call API
+
+Use access token in header
+
+Authorization: Bearer <token>
+
+3️⃣ Wait for Expiry
+
+After 1 minute → token expires
+
+4️⃣ Refresh Token
+
+Call /auth/refresh
+
+Get new access token
+
+5️⃣ Call API Again
+
+Use new token → ✅ success
