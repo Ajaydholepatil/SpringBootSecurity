@@ -6,21 +6,39 @@ import org.springframework.stereotype.Component;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import java.security.Key;
+import org.springframework.beans.factory.annotation.Value;
+
 @Component
 public class JwtUtil {
-	
-	private static final long JWT_EXPIRATION = 1000 * 60 * 1; // 1 minute
 
-	private final Key key = Keys.hmacShaKeyFor(
-		    "mysecretkeymysecretkeymysecretkey123".getBytes()
-		);
-	public String generateToken(String username) {
+	@Value("${jwt.secret}")
+	private String secret;
+
+	@Value("${jwt.access.expiration}")
+	private long accessExpiration;
+
+	@Value("${jwt.refresh.expiration}")
+	private long refreshExpiration;
+
+	private Key getSigningKey() {
+		return Keys.hmacShaKeyFor(secret.getBytes());
+	}
+
+	public String generateAccessToken(String username) {
 	    return Jwts.builder()
 	            .setSubject(username)
-	            .setIssuer("book-app")
 	            .setIssuedAt(new Date())
-	            .setExpiration(new Date(System.currentTimeMillis() + JWT_EXPIRATION))
-	            .signWith(key)   
+	            .setExpiration(new Date(System.currentTimeMillis() + accessExpiration))
+	            .signWith(getSigningKey())
+	            .compact();
+	}
+
+	public String generateRefreshToken(String username) {
+	    return Jwts.builder()
+	            .setSubject(username)
+	            .setIssuedAt(new Date())
+	            .setExpiration(new Date(System.currentTimeMillis() + refreshExpiration))
+	            .signWith(getSigningKey())
 	            .compact();
 	}
 
@@ -33,11 +51,7 @@ public class JwtUtil {
 	}
 
 	private Claims getClaims(String token) {
-	    return Jwts.parserBuilder()
-	            .setSigningKey(key)
-	            .build()
-	            .parseClaimsJws(token)
-	            .getBody();
+		return Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token).getBody();
 	}
 
 }
